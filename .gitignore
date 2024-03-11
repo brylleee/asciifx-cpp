@@ -1,0 +1,10 @@
+.vscode
+
+# build instructions
+.build
+
+# build file
+asciifx
+
+# not yet ready files
+main.cpp
