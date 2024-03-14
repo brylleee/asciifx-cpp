@@ -15,7 +15,7 @@ namespace AsciiFxConfig {
      * @brief Initializes ImageMagick as well as other stuff. This must be initialized before using any part of the AsciiFx library.
     */
     inline void init() {
-        setlocale(LC_ALL, "en_US.UTF-8");
+        setlocale(LC_ALL, "");  
         Magick::InitializeMagick(nullptr);
     }
 }
@@ -110,7 +110,7 @@ class AsciiFx {
         };
 
         for(int i = 0; i < this->space.size(); i++) {
-            for(int j = 0, k = 0; j < this->space.at(i).size(); j += 4, k++) {
+            for(int j = 0; j < this->space.at(i).size(); j += 4) {
                 std::array<int, 4> block = { this->space[i][j], this->space[i][j + 1], this->space[i][j + 2], this->space[i][j + 3] };
                 auto itr = arts.find(block);
                 if(itr != arts.end()) {
@@ -124,28 +124,48 @@ class AsciiFx {
     }
 
 
-    public: std::vector<std::string> braille_convert(Dithering* DitheringAlgorithm) {
-        std::vector<std::string> result(this->height);
-        std::string line = "";
+    public: std::vector<std::wstring> braille_convert(Dithering* DitheringAlgorithm, int shrink_nth_times = 1) {
+        Magick::Image img_cpy = img;  // This will hold the original image while it is being resized
+
+        // Shrinking the height compensates for it and keeps the original aspect ratio.
+        Magick::Geometry size((this->width/shrink_nth_times), (this->height/shrink_nth_times));
+        size.aspect(true);
+        size.fillArea(true);
+
+        // Resize original image
+        img.resize(size);  
+        this->width = this->width/shrink_nth_times;
+        this->height = this->height/shrink_nth_times;
 
         this->allocate_space(this->height);
         DitheringAlgorithm->dither(this);
+        std::vector<std::wstring> result(this->height/4);
+        std::wstring line;
+
+        // After dithering the image, we turn it back to it's original size
+        img = img_cpy;
+        this->width = img.columns();
+        this->height = img.rows();
 
         // https://kbravh.dev/encoding-qr-codes-in-braille
-        int braille_unicode_offset = 10240;
+        int braille_unicode_offset = 0x2800;
         int corresponding_char_offset = 0;
 
-        for(int i = 0; i < this->height; i += 4) {
-            for(int j = 0; j < this->space.at(i).size(); j += 2) {
+        for(int i = 0, ix = 0; i+4 < this->space.size(); i += 4, ix++) {
+            for(int j = 0; j+2 < this->space.at(i).size(); j += 2) {
                 corresponding_char_offset +=
-                    (space[i][j] << 1)   + (space[i][j+1] << 4) +
-                    (space[i+1][j] << 2) + (space[i+1][j+1] << 5) +
-                    (space[i+2][j] << 3) + (space[i+2][j+1] << 6) +
-                    (space[i+3][j] << 7) + (space[i+3][j+1] << 8);
+                    (space[i][j])   + (space[i][j+1] << 3) +
+                    (space[i+1][j] << 1) + (space[i+1][j+1] << 4) +
+                    (space[i+2][j] << 2) + (space[i+2][j+1] << 5) +
+                    (space[i+3][j] << 6) + (space[i+3][j+1] << 7);
 
                 // add braille offset + char offset to line
-                // line += ;
+                line += static_cast<wchar_t>(braille_unicode_offset + corresponding_char_offset);
+                corresponding_char_offset = 0;
             }
+
+           result[ix] = line;
+           line.clear();
         }
 
         return result;
