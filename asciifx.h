@@ -1,7 +1,11 @@
 #include <GraphicsMagick/Magick++/Geometry.h>
 #include <GraphicsMagick/Magick++/Include.h>
 #include <Magick++.h>
+
 #include <iostream>
+#include <cmath>
+
+// TODO: improve dithering
 
 /**
  * @namespace AsciiFxConfig 
@@ -48,6 +52,11 @@ class AsciiFx {
     private: size_t height;
     public: size_t get_height() { return height; };  // getter returns value
 
+    // Remaps a value from a bigger range of values to a smaller range
+    public: static float remap(int x, int xmin, int xmax, int ymin, int ymax) {
+        return round(((float)(x - xmin)/(float)(xmax - xmin)) * (ymax - ymin) + ymin);
+    }
+
     public: AsciiFx(std::string img_path) {
         try {
             img.read(img_path);
@@ -58,8 +67,7 @@ class AsciiFx {
         this->height = img.rows();
         this->width = img.columns();
 
-        // Initial allocation of space
-        this->allocate_space(height);
+        allocate_space(this->height);
     }
 
 
@@ -79,7 +87,7 @@ class AsciiFx {
         this->height = (this->height/shrink_nth_times)/shrink_height_compensation;
 
         // Allocate custom height of space
-        allocate_space(this->height);
+        allocate_space(this->height, this->width);
 
         DitheringAlgorithm->dither(this);
 
@@ -137,9 +145,9 @@ class AsciiFx {
         this->width = this->width/shrink_nth_times;
         this->height = this->height/shrink_nth_times;
 
-        this->allocate_space(this->height);
+        this->allocate_space(this->height, this->width);
         DitheringAlgorithm->dither(this);
-        std::vector<std::wstring> result(this->height/4);
+        std::vector<std::wstring> result(floor(this->height/4));  // the result only occupies a quarter of the height
         std::wstring line;
 
         // After dithering the image, we turn it back to it's original size
@@ -173,13 +181,13 @@ class AsciiFx {
 
 
     // Allocate space with custom height
-    public: void allocate_space(size_t new_height = 0) {
+    public: void allocate_space(size_t new_height = 0, size_t new_width = 0) {
         this->free_space();
         new_height = new_height == 0 ? this->height : new_height;
 
         // Fill space with default values
         for(int i = 0; i < new_height; i++) {  
-            this->space.push_back(std::vector<int>());
+            this->space.push_back(std::vector<int>(new_width));
         }
     }
 
@@ -189,49 +197,60 @@ class AsciiFx {
     }
 };
 
-
 class Threshold : public Dithering {
     private: Magick::Color pixel;
     private: int grayscale_value;
     
     private: void dither(AsciiFx *ascii_img) override {
-        ascii_img->img.depth(8);
-        for(int i = 0; i < ascii_img->get_height(); i++) {
-            for(int j = 0; j < ascii_img->get_width(); j++) {
+        for(int i = 0; i < ascii_img->space.size(); i++) {
+            for(int j = 0; j < ascii_img->space.at(0).size(); j++) {
                 pixel = ascii_img->img.pixelColor(j, i); 
                 grayscale_value = ((pixel.redQuantum() + pixel.greenQuantum() + pixel.blueQuantum()) / 3); 
 
-                ascii_img->space.at(i).push_back(
-                    grayscale_value > 65536/2 ? 1 : 0
-                );
+                ascii_img->space[i][j] = grayscale_value > 65536/2 ? 1 : 0;
             }
         }
     }
 };
 
-// ** unfinished **
 class FloydSteinberg : public Dithering {
-    private: int error = 0;
     private: Magick::Color pixel;
-    private: int grayscale_value;
+    private: int pixel_value = 0;
 
-    private: int black = 255;
+    private: const int white = 255;
+    private: const int black = 0;
+
+    private: int old_value;
+    private: int new_value;
+    private: int error = 0;
 
     private: void dither(AsciiFx *ascii_img) override {
-        ascii_img->img.depth(8);  // turn image colors to 8 bits
-        
         for(int i = 0; i < ascii_img->get_height(); i++) {
             for(int j = 0; j < ascii_img->get_width(); j++) {
                 pixel = ascii_img->get_img().pixelColor(j, i);
-                grayscale_value = ((pixel.redQuantum() + pixel.greenQuantum() + pixel.blueQuantum()) / 3);
-                // Error diffusion
-                if(grayscale_value >= (int)black/2) {  // halfway or above: force black
-                    ascii_img->space.at(i).push_back(0); 
-                    error += grayscale_value;
-                } else { // halfway or below: force white
-                    ascii_img->space.at(i).push_back(0);
-                    error = error + (grayscale_value - black);
-                }                
+                pixel_value = ((pixel.redQuantum() + pixel.greenQuantum() + pixel.blueQuantum()) / 3);
+                ascii_img->space[i][j] = AsciiFx::remap(pixel_value, 0, 65535, 0, 255);
+            }
+        }
+        
+        for(int i = 0; i < ascii_img->space.size(); i++) {
+            for(int j = 0; j < ascii_img->space.at(0).size(); j++) {
+                old_value = ascii_img->space[i][j];
+                new_value = old_value >= (white/2) ? white : black; 
+                ascii_img->space[i][j] = new_value == white ? 1 : 0;
+                error = old_value - new_value;
+
+                if(j < ascii_img->get_width()-1)
+                    ascii_img->space[i][j+1] += round(error / 16.0 * 7.0);
+
+                if(i < ascii_img->get_height()-1 && j > 0)
+                    ascii_img->space[i+1][j-1] += round(error / 16.0 * 3.0);
+
+                if(i < ascii_img->get_height()-1)
+                    ascii_img->space[i+1][j] += round(error / 16.0 * 5.0);
+
+                if(i < ascii_img->get_height()-1 && j < ascii_img->get_width()-1)
+                    ascii_img->space[i+1][j+1] += round(error / 16.0 * 1.0);
             }
         }
     }
