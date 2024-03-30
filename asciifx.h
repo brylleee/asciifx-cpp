@@ -5,7 +5,11 @@
 #include <iostream>
 #include <cmath>
 
-// TODO: improve dithering
+// TODO: do something about temporary img resizing at convert functions (DRY)
+//       unaccounted values under moon emojis convert
+//       random dithering
+//       move clamp and remap to a different class
+//       better documentation
 
 /**
  * @namespace AsciiFxConfig 
@@ -26,7 +30,11 @@ namespace AsciiFxConfig {
 
 class AsciiFx;
 
-// Strategy design pattern
+/**
+ * @class Dithering
+ * @brief Parent class of various dithering algorithms
+ * Fills up the 'space' vector in an 'AsciiFx' object with dithered pixel values
+*/
 class Dithering {
     private: virtual void dither(AsciiFx *img) = 0;
     friend class AsciiFx;
@@ -53,9 +61,16 @@ class AsciiFx {
     public: size_t get_height() { return height; };  // getter returns value
 
     // Remaps a value from a bigger range of values to a smaller range
-    public: static float remap(int x, int xmin, int xmax, int ymin, int ymax) {
+    public: static int remap(int x, int xmin, int xmax, int ymin, int ymax) {
         return round(((float)(x - xmin)/(float)(xmax - xmin)) * (ymax - ymin) + ymin);
     }
+
+    // Constraint a value with minimum and maximum range
+    public: static int clamp(int x, int xmin, int xmax) {
+        if(x > xmax) return xmax;
+        if(x < xmin) return xmin;
+        return x;
+    } 
 
     public: AsciiFx(std::string img_path) {
         try {
@@ -88,10 +103,8 @@ class AsciiFx {
 
         // Allocate custom height of space
         allocate_space(this->height, this->width);
-
         DitheringAlgorithm->dither(this);
-
-        std::vector<std::string> result(height);
+        std::vector<std::string> result(this->height);
 
         // After dithering the image, we turn it back to it's original size
         img = img_cpy;
@@ -119,11 +132,16 @@ class AsciiFx {
 
         for(int i = 0; i < this->space.size(); i++) {
             for(int j = 0; j < this->space.at(i).size(); j += 4) {
-                std::array<int, 4> block = { this->space[i][j], this->space[i][j + 1], this->space[i][j + 2], this->space[i][j + 3] };
+                std::array<int, 4> block = {
+                    remap(this->space[i][j], 0, 255, 0, 1),
+                    remap(this->space[i][j + 1], 0, 255, 0, 1), 
+                    remap(this->space[i][j + 2], 0, 255, 0, 1), 
+                    remap(this->space[i][j + 3], 0, 255, 0, 1)
+                };
+                
                 auto itr = arts.find(block);
-                if(itr != arts.end()) {
+                if(itr != arts.end())
                     result[i] += itr->second;
-                }
             }
         }
 
@@ -132,7 +150,41 @@ class AsciiFx {
     }
 
 
-    public: std::vector<std::wstring> braille_convert(Dithering* DitheringAlgorithm, int shrink_nth_times = 1) {
+    public: std::vector<std::string> block_convert(Dithering* DitheringAlgorithm, int shrink_nth_times = 1) {
+        Magick::Image img_cpy = img;  // This will hold the original image while it is being resized
+
+        // Shrinking the height compensates for it and keeps the original aspect ratio.
+        Magick::Geometry size((this->width/shrink_nth_times), (this->height/shrink_nth_times)/2);
+        size.aspect(true);
+        size.fillArea(true);
+
+        // Resize original image
+        img.resize(size);  
+        this->width = this->width/shrink_nth_times;
+        this->height = this->height/shrink_nth_times/2;
+
+        this->allocate_space(this->height, this->width);
+        DitheringAlgorithm->dither(this);
+        std::vector<std::string> result(this->height);
+
+        // After dithering the image, we turn it back to it's original size
+        img = img_cpy;
+        this->width = img.columns();
+        this->height = img.rows();
+
+        std::string blocks[] = {"░", "▒", "▓", "█"};
+
+        for(int i = 0; i < this->space.size(); i++) {
+            for(int j = 0; j < this->space.at(i).size(); j++) {
+                result[i] += blocks[remap(space[i][j], 0, 255, 0, 3)];
+            }
+        }
+
+        return result;
+    }
+
+
+    public: std::vector<std::wstring> braille_convert_wide(Dithering* DitheringAlgorithm, int shrink_nth_times = 1) {
         Magick::Image img_cpy = img;  // This will hold the original image while it is being resized
 
         // Shrinking the height compensates for it and keeps the original aspect ratio.
@@ -162,10 +214,10 @@ class AsciiFx {
         for(int i = 0, ix = 0; i+4 < this->space.size(); i += 4, ix++) {
             for(int j = 0; j+2 < this->space.at(i).size(); j += 2) {
                 corresponding_char_offset +=
-                    (space[i][j])   + (space[i][j+1] << 3) +
-                    (space[i+1][j] << 1) + (space[i+1][j+1] << 4) +
-                    (space[i+2][j] << 2) + (space[i+2][j+1] << 5) +
-                    (space[i+3][j] << 6) + (space[i+3][j+1] << 7);
+                    remap(space[i][j], 0, 255, 0, 1)   + (remap(space[i][j+1], 0, 255, 0, 1) << 3) +
+                    (remap(space[i+1][j], 0, 255, 0, 1) << 1) + (remap(space[i+1][j+1], 0, 255, 0, 1) << 4) +
+                    (remap(space[i+2][j], 0, 255, 0, 1) << 2) + (remap(space[i+2][j+1], 0, 255, 0, 1) << 5) +
+                    (remap(space[i+3][j], 0, 255, 0, 1) << 6) + (remap(space[i+3][j+1], 0, 255, 0, 1) << 7);
 
                 // add braille offset + char offset to line
                 line += static_cast<wchar_t>(braille_unicode_offset + corresponding_char_offset);
@@ -199,17 +251,25 @@ class AsciiFx {
 
 class Threshold : public Dithering {
     private: Magick::Color pixel;
-    private: int grayscale_value;
+    private: int pixel_value;
     
     private: void dither(AsciiFx *ascii_img) override {
         for(int i = 0; i < ascii_img->space.size(); i++) {
             for(int j = 0; j < ascii_img->space.at(0).size(); j++) {
                 pixel = ascii_img->img.pixelColor(j, i); 
-                grayscale_value = ((pixel.redQuantum() + pixel.greenQuantum() + pixel.blueQuantum()) / 3); 
+                pixel_value = round(0.299*pixel.redQuantum()) + round(0.587*pixel.greenQuantum()) + round(0.114*pixel.blueQuantum()); 
 
-                ascii_img->space[i][j] = grayscale_value > 65536/2 ? 1 : 0;
+                ascii_img->space[i][j] = AsciiFx::remap(pixel_value, 0, 65535, 0, 255); //grayscale_value > 65536/2 ? 1 : 0;
             }
         }
+    }
+};
+
+class BayerMatrix : public Dithering {
+    private: Magick::Color pixel;
+
+    private: void dither(AsciiFx *ascii_img) override {
+        
     }
 };
 
@@ -228,7 +288,7 @@ class FloydSteinberg : public Dithering {
         for(int i = 0; i < ascii_img->get_height(); i++) {
             for(int j = 0; j < ascii_img->get_width(); j++) {
                 pixel = ascii_img->get_img().pixelColor(j, i);
-                pixel_value = ((pixel.redQuantum() + pixel.greenQuantum() + pixel.blueQuantum()) / 3);
+                pixel_value = round(0.299*pixel.redQuantum()) + round(0.587*pixel.greenQuantum()) + round(0.114*pixel.blueQuantum()); 
                 ascii_img->space[i][j] = AsciiFx::remap(pixel_value, 0, 65535, 0, 255);
             }
         }
@@ -236,8 +296,7 @@ class FloydSteinberg : public Dithering {
         for(int i = 0; i < ascii_img->space.size(); i++) {
             for(int j = 0; j < ascii_img->space.at(0).size(); j++) {
                 old_value = ascii_img->space[i][j];
-                new_value = old_value >= (white/2) ? white : black; 
-                ascii_img->space[i][j] = new_value == white ? 1 : 0;
+                new_value = old_value >= (white/2) ? white : black;
                 error = old_value - new_value;
 
                 if(j < ascii_img->get_width()-1)
@@ -251,6 +310,8 @@ class FloydSteinberg : public Dithering {
 
                 if(i < ascii_img->get_height()-1 && j < ascii_img->get_width()-1)
                     ascii_img->space[i+1][j+1] += round(error / 16.0 * 1.0);
+
+                ascii_img->space[i][j] = AsciiFx::clamp(ascii_img->space[i][j], 0, 255);
             }
         }
     }
