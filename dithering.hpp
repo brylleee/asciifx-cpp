@@ -17,19 +17,19 @@ class Dithering {
 };
 
 class Threshold : public Dithering {
-    private: Magick::Color pixel;
     private: int pixel_value;
     private: void dither(AsciiFx *ascii_img) override;
 };
 
-class BayerMatrix : public Dithering {
-    private: Magick::Color pixel;
+class Random : public Dithering {
+    private: void dither(AsciiFx *ascii_img) override;
+};
 
+class BayerMatrix : public Dithering {
     private: void dither(AsciiFx *ascii_img) override;
 };
 
 class FloydSteinberg : public Dithering {
-    private: Magick::Color pixel;
     private: int pixel_value;
 
     private: int old_value;

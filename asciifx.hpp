@@ -1,11 +1,10 @@
 #pragma once
 
-#include <GraphicsMagick/Magick++/Geometry.h>
-#include <GraphicsMagick/Magick++/Include.h>
-#include <Magick++.h>
-
 #include <iostream>
 #include <cmath>
+
+#include "CImg.h"
+using namespace cimg_library;
 
 #include "dithering.hpp"
 class Dithering;
@@ -27,12 +26,12 @@ class AsciiFxConfig {
 
 class AsciiFx {
     // Refers to the image supplied in the constructor
-    public: Magick::Image img;
-    public: Magick::Image get_img();  // getter returns reference
+    public: CImg<uint8_t> img;
+    public: CImg<uint8_t> get_img();
 
     // Refers to the 2D vector containing integers of dithered values
-    public: std::vector<std::vector<int>> space;
-    public: std::vector<std::vector<int>> get_space();  // getter returns value
+    public: std::vector<std::vector<uint8_t>> space;
+    public: std::vector<std::vector<uint8_t>> get_space();  // getter returns value
 
     // Refers to the original width and height of the image supplied in the constructor
     private: size_t width;

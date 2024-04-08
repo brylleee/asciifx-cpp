@@ -5,11 +5,9 @@ void Dithering::dither(AsciiFx *ascii_img) { }
 
 void Threshold::dither(AsciiFx *ascii_img) {
     for(int i = 0; i < ascii_img->space.size(); i++) {
-        for(int j = 0; j < ascii_img->space.at(0).size(); j++) {
-            pixel = ascii_img->img.pixelColor(j, i); 
-            pixel_value = round(0.299*pixel.redQuantum()) + round(0.587*pixel.greenQuantum()) + round(0.114*pixel.blueQuantum()); 
-
-            ascii_img->space[i][j] = CalcFx::remap(pixel_value, 0, 65535, 0, 255); //grayscale_value > 65536/2 ? 1 : 0;
+        for(int j = 0; j < ascii_img->space.at(0).size(); j++) { 
+            pixel_value = round((0.299*(int)(ascii_img->img(j, i, 0, 0))) + (0.587*(int)(ascii_img->img(j, i, 0, 1))) + (0.114*(int)(ascii_img->img(j, i, 0, 2)))); 
+            ascii_img->space[i][j] = pixel_value; //grayscale_value > 65536/2 ? 1 : 0;
         }
     }
 }
@@ -18,13 +16,15 @@ void BayerMatrix::dither(AsciiFx *ascii_img) {
         
 }
 
+void Random::dither(AsciiFx *ascii_img) {
+
+}
 
 void FloydSteinberg::dither(AsciiFx *ascii_img) {
     for(int i = 0; i < ascii_img->get_height(); i++) {
         for(int j = 0; j < ascii_img->get_width(); j++) {
-            pixel = ascii_img->get_img().pixelColor(j, i);
-            pixel_value = round(0.299*pixel.redQuantum()) + round(0.587*pixel.greenQuantum()) + round(0.114*pixel.blueQuantum()); 
-            ascii_img->space[i][j] = CalcFx::remap(pixel_value, 0, 65535, 0, 255);
+            pixel_value = round(0.299*(int)(ascii_img->img(j, i, 0, 0))) + round(0.587*(int)(ascii_img->img(j, i, 0, 1))) + round(0.114*(int)(ascii_img->img(j, i, 0, 2))); 
+            ascii_img->space[i][j] = pixel_value;
         }
     }
         
