@@ -1,16 +1,12 @@
 #include <iostream>
 #include <map>
 
-#include "CImg.h"
-using namespace cimg_library;
-
 #include "asciifx.hpp"
 #include "dithering.hpp"
 #include "calcfx.hpp"
 
 // TODO: do something about temporary img resizing at convert functions (DRY)
 //       better documentation
-
 
 void AsciiFxConfig::init() {
     setlocale(LC_ALL, "");  
