@@ -1,6 +1,11 @@
 #pragma once
 
+#include "calcfx.hpp"
 #include "asciifx.hpp"
+
+#include <cstdlib>
+#include <ctime>
+
 class AsciiFx;
 
 const int BLACK = 0;
@@ -17,11 +22,12 @@ class Dithering {
 };
 
 class Threshold : public Dithering {
-    private: int pixel_value;
+    private: uint8_t pixel_value;
     private: void dither(AsciiFx *ascii_img) override;
 };
 
 class Random : public Dithering {
+    private: uint8_t pixel_value;
     private: void dither(AsciiFx *ascii_img) override;
 };
 
@@ -30,10 +36,10 @@ class BayerMatrix : public Dithering {
 };
 
 class FloydSteinberg : public Dithering {
-    private: int pixel_value;
+    private: uint8_t pixel_value;
 
-    private: int old_value;
-    private: int new_value;
+    private: uint8_t old_value;
+    private: uint8_t new_value;
     private: int error = 0;
 
     private: void dither(AsciiFx *ascii_img) override;

@@ -1,9 +1,4 @@
-#include <iostream>
-#include <map>
-
 #include "asciifx.hpp"
-#include "dithering.hpp"
-#include "calcfx.hpp"
 
 // TODO: do something about temporary img resizing at convert functions (DRY)
 //       better documentation
