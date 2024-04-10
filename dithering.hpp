@@ -21,7 +21,7 @@ class Dithering {
     friend class AsciiFx;
 };
 
-class Threshold : public Dithering {
+class Default : public Dithering {
     private: uint8_t pixel_value;
     private: void dither(AsciiFx *ascii_img) override;
 };
@@ -32,7 +32,20 @@ class Random : public Dithering {
 };
 
 class BayerMatrix : public Dithering {
+    private: uint8_t pixel_value;
     private: void dither(AsciiFx *ascii_img) override;
+
+    private: int bayer_size = 8;
+    private: int bayer8x8matrix[8][8] = {
+        { 0, 32,  8, 40,  2, 34, 10, 42  },
+        { 48, 16, 56, 24, 50, 18, 58, 26 },
+        { 12, 44,  4, 36, 14, 46,  6, 38 },
+        { 60, 28, 52, 20, 62, 30, 54, 22 },
+        {  3, 35, 11, 43,  1, 33,  9, 41 },
+        { 51, 19, 59, 27, 49, 17, 57, 25 },
+        { 15, 47,  7, 39, 13, 45,  5, 37 },
+        { 63, 31, 55, 23, 61, 29, 53, 21 }
+    };
 };
 
 class FloydSteinberg : public Dithering {
