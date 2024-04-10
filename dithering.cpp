@@ -2,6 +2,9 @@
 
 void Dithering::dither(AsciiFx *ascii_img) { }
 
+// This doesn't dither, just convert each pixel to its grayscale value (0-255)
+// Thresholding is done at convert functions because they each have their own
+// color values they're limited at.
 void Default::dither(AsciiFx *ascii_img) {
     for(int i = 0; i < ascii_img->space.size(); i++) {
         for(int j = 0; j < ascii_img->space.at(0).size(); j++) { 
@@ -14,7 +17,8 @@ void Default::dither(AsciiFx *ascii_img) {
 void BayerMatrix::dither(AsciiFx *ascii_img) {
     for(int i = 0; i < ascii_img->space.size(); i++) {
         for(int j = 0; j < ascii_img->space.at(0).size(); j++) { 
-            pixel_value = round((0.299*(int)(ascii_img->img(j, i, 0, 0))) + (0.587*(int)(ascii_img->img(j, i, 0, 1))) + (0.114*(int)(ascii_img->img(j, i, 0, 2)))); 
+            pixel_value = round((0.299*(int)(ascii_img->img(j, i, 0, 0))) + (0.587*(int)(ascii_img->img(j, i, 0, 1))) + (0.114*(int)(ascii_img->img(j, i, 0, 2))));
+            // Compare the value the current pixel to the bayer matrix value
             ascii_img->space[i][j] = pixel_value > CalcFx::remap(bayer8x8matrix[i % (bayer_size+1)][j % (bayer_size+1)], 0, 64, 0, 255) ? WHITE : BLACK; 
         }
     }
@@ -26,6 +30,7 @@ void Random::dither(AsciiFx *ascii_img) {
     for(int i = 0; i < ascii_img->space.size(); i++) {
         for(int j = 0; j < ascii_img->space.at(0).size(); j++) { 
             pixel_value = round((0.299*(int)(ascii_img->img(j, i, 0, 0))) + (0.587*(int)(ascii_img->img(j, i, 0, 1))) + (0.114*(int)(ascii_img->img(j, i, 0, 2)))); 
+            // Apply a random threshold value
             ascii_img->space[i][j] = pixel_value > rand()%255 ? 255 : 0;
         }
     }
