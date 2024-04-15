@@ -48,16 +48,16 @@ void FloydSteinberg::dither(AsciiFx *ascii_img) {
             new_value = old_value >= (WHITE/2) ? WHITE : BLACK;
             error = old_value - new_value;
 
-            if(j < ascii_img->get_width()-1)
+            if(j < ascii_img->width-1)
                 ascii_img->space[ix][j+1] += round(error / 16.0 * 7.0);
 
-            if(ix < ascii_img->get_height()-1 && j > 0)
+            if(ix < ascii_img->height-1 && j > 0)
                 ascii_img->space[ix+1][j-1] += round(error / 16.0 * 3.0);
 
-            if(ix < ascii_img->get_height()-1)
+            if(ix < ascii_img->height-1)
                 ascii_img->space[ix+1][j] += round(error / 16.0 * 5.0);
 
-            if(ix < ascii_img->get_height()-1 && j < ascii_img->get_width()-1)
+            if(ix < ascii_img->height-1 && j < ascii_img->width-1)
                 ascii_img->space[ix+1][j+1] += round(error / 16.0 * 1.0);
 
             ascii_img->space[ix][j] = CalcFx::clamp(ascii_img->space[ix][j], 0, 255);

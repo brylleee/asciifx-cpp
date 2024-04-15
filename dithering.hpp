@@ -17,23 +17,22 @@ const int WHITE = 255;
  * Fills up the 'space' vector in an 'AsciiFx' object with dithered pixel values
 */
 class Dithering {
-    private: virtual void dither(AsciiFx *img) = 0;
-    friend class AsciiFx;
+    public: virtual void dither(AsciiFx *img);
 };
 
 class Default : public Dithering {
     private: uint8_t pixel_value;
-    private: void dither(AsciiFx *ascii_img) override;
+    public: void dither(AsciiFx *ascii_img) override;
 };
 
 class Random : public Dithering {
     private: uint8_t pixel_value;
-    private: void dither(AsciiFx *ascii_img) override;
+    public: void dither(AsciiFx *ascii_img) override;
 };
 
 class BayerMatrix : public Dithering {
     private: uint8_t pixel_value;
-    private: void dither(AsciiFx *ascii_img) override;
+    public: void dither(AsciiFx *ascii_img) override;
 
     private: int bayer_size = 8;
     private: int bayer8x8matrix[8][8] = {
@@ -55,5 +54,5 @@ class FloydSteinberg : public Dithering {
     private: uint8_t new_value;
     private: int error = 0;
 
-    private: void dither(AsciiFx *ascii_img) override;
+    public: void dither(AsciiFx *ascii_img) override;
 };

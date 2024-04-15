@@ -8,9 +8,11 @@
 #include "CImg.h"
 using namespace cimg_library;
 
+#include "converter.hpp"
 #include "dithering.hpp"
 #include "calcfx.hpp"
 
+class Converter;
 class Dithering;
 
 /*
@@ -38,17 +40,14 @@ class AsciiFx {
     public: std::vector<std::vector<uint8_t>> get_space();  // getter returns value
 
     // Refers to the original width and height of the image supplied in the constructor
-    private: size_t width;
-    public: size_t get_width();  // getter returns value
-
-    private: size_t height;
-    public: size_t get_height();  // getter returns value
+    public: size_t width;
+    public: size_t height;
 
     public: AsciiFx(std::string img_path);
-    public: std::vector<std::string> moon_emojis_convert(Dithering* DitheringAlgorithm, int shrink_nth_times = 1);
-    public: std::vector<std::string> block_convert(Dithering* DitheringAlgorithm, int shrink_nth_times = 1);
-    public: std::vector<std::wstring> braille_convert_wide(Dithering* DitheringAlgorithm, int shrink_nth_times = 1);
 
     public: void allocate_space(size_t new_height = 0, size_t new_width = 0);
     public: void free_space();
+
+    public: std::vector<std::string> convert(Converter* Converter, Dithering* DitheringAlgorithm, int shrink_nth_times = 1);
 };
+
