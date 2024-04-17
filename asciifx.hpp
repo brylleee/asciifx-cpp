@@ -1,8 +1,10 @@
 #pragma once
 
-#include <iostream>
 #include <cmath>
 #include <map>
+#include <vector>
+#include <cstdint>
+#include <string>
 
 #define cimg_display 0
 #include "CImg.h"

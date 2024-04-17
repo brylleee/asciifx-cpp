@@ -7,11 +7,7 @@ void AsciiFxConfig::init() {
 // -----------------------------------------------------------------------------------------------------
 
 AsciiFx::AsciiFx(std::string img_path) {
-    try {
-        this->img.load(img_path.c_str());
-    } catch(CImgIOException &e) {
-        std::cerr << e.what() << std::endl;
-    }
+    this->img.load(img_path.c_str());
 
     this->height = img.height();
     this->width = img.width();

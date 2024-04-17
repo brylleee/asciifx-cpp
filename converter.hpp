@@ -1,18 +1,14 @@
 #pragma once
 
-#define cimg_display 0
-#include "CImg.h"
-using namespace cimg_library;
-
 class AsciiFx;
 class Dithering;
 
 #include "asciifx.hpp"
 
-#include <string>
 #include "dithering.hpp"
 #include "calcfx.hpp"
 
+#include <string>
 #include <locale>
 #include <codecvt>
 
